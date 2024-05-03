@@ -1,9 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import streamlit as st
-import pickle 
-
 
 @st.cache(suppress_st_warning=True)
 def get_fvalue(val):
@@ -17,20 +14,20 @@ def get_value(val, my_dict):
         if val == key:
             return value
 
-app_mode = st.sidebar.selectbox('Select Page', ['Home', 'Prediction']) 
+app_mode = st.sidebar.selectbox('Select Page', ['Home', 'Prediction'])
 
-if app_mode=='Home':    
-    st.title('Flight Prediction ')    
-    st.write('App realised by : Jana , Jouna and Ahmad')  
-    st.image('flight.jpg')
+if app_mode == 'Home':    
+    st.title('Flight Prediction')    
+    st.write('App realized by: Jana, Jouna, and Ahmad')  
+    st.image('flight.jpg', caption='Image of a flight')  # Display the flight image
     st.markdown('Dataset')    
-    data=pd.read_csv('flights.csv')    
+    data = pd.read_csv('flights.csv')    
     st.write(data.head())   
 
 elif app_mode == 'Prediction':    
-    st.title ("Flight Delay Prediction")
+    st.title("Flight Delay Prediction")
     user_input = st.text_input('Please enter your flight ID number')
     st.button('Click me!')
     df = pd.DataFrame(np.random.randn(500, 2) / [50, 50] + [37.76, -122.4],
-    columns=['lat', 'lon'])
+                      columns=['lat', 'lon'])
     st.map(df)
