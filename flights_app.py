@@ -1,41 +1,36 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from tensorflow.keras.models import load_model
+import streamlit as st
+import pickle 
 
-# Load your preprocessed data (you can adapt this part)
-# Example: Load flights.csv
-df = pd.read_csv("flights.csv")
 
-# Load the trained LSTM model
-model = load_model('lstm_model.h5')
+@st.cache(suppress_st_warning=True)
+def get_fvalue(val):
+    feature_dict = {"No": 1, "Yes": 2}
+    for key, value in feature_dict.items():
+        if val == key:
+            return value
 
-# Sidebar inputs
-st.sidebar.header("Flight Details")
-flight_number = st.sidebar.text_input("Enter Flight Number")
-origin = st.sidebar.selectbox("Select Origin", df["Origin"].unique())
-destination = st.sidebar.selectbox("Select Destination", df["Dest"].unique())
+def get_value(val, my_dict):
+    for key, value in my_dict.items():
+        if val == key:
+            return value
 
-# Filter data based on user inputs
-filtered_df = df[(df["FlightNum"] == flight_number) & (df["Origin"] == origin) & (df["Dest"] == destination)]
+app_mode = st.sidebar.selectbox('Select Page', ['Home', 'Prediction']) 
 
-if filtered_df.empty:
-    st.warning("No matching flights found.")
-else:
-    # Prepare input features for prediction
-    # (you'll need to adapt this part based on your preprocessing steps)
-    input_features = np.array(filtered_df.drop(columns=["Delay"]).iloc[0]).reshape(1, 1, -1)
+if app_mode=='Home':    
+    st.title('Flight Prediction ')    
+    #st.write('App realised by : Jana , Jouna and Ahmad')  
+    st.image('flight.jpg')
+    #st.markdown('Dataset')    
+    #data=pd.read_csv('flights.csv')    
+    #st.write(data.head())   
 
-    # Make predictions
-    predicted_delay_probability = model.predict(input_features)[0][0]
-
-    # Determine delay status
-    if predicted_delay_probability >= 0.5:
-        st.write("Flight is likely to be delayed.")
-    else:
-        st.write("Flight is likely to be on time.")
-
-# Run the app
-if __name__ == "__main__":
-    st.title("Flight Delay Prediction App")
-    st.write("Enter flight details in the sidebar.")
+elif app_mode == 'Prediction':    
+    st.title ("Flight Delay Prediction")
+    user_input = st.text_input('Please enter your flight ID number')
+    st.button('Click me!')
+    df = pd.DataFrame(np.random.randn(500, 2) / [50, 50] + [37.76, -122.4],
+    columns=['lat', 'lon'])
+    st.map(df)
