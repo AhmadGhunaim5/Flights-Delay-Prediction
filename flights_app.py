@@ -21,11 +21,11 @@ app_mode = st.sidebar.selectbox('Select Page', ['Home', 'Prediction'])
 
 if app_mode=='Home':    
     st.title('Flight Prediction ')    
-    #st.write('App realised by : Jana , Jouna and Ahmad')  
+    st.write('App realised by : Jana , Jouna and Ahmad')  
     st.image('flight.jpg')
-    #st.markdown('Dataset')    
-    #data=pd.read_csv('flights.csv')    
-    #st.write(data.head())   
+    st.markdown('Dataset')    
+    data=pd.read_csv('flights.csv')    
+    st.write(data.head())   
 
 elif app_mode == 'Prediction':    
     st.title ("Flight Delay Prediction")
