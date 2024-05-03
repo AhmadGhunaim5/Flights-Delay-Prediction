@@ -1,41 +1,43 @@
+# flight_delay_app.py
+! pip install streamlit
 import streamlit as st
+import pandas as pd
 import numpy as np
-import tensorflow as tf
+from tensorflow.keras.models import load_model
 
-# Load the LSTM model
-model = tf.keras.models.load_model('lstm_model.h5')
+# Load your preprocessed data (you can adapt this part)
+# Example: Load flights.csv
+df = pd.read_csv("flights.csv")
 
-# Function to preprocess input data
-def preprocess_input(input_data):
-    # Apply preprocessing steps here
-    preprocessed_data = input_data  # Placeholder for actual preprocessing
-    return preprocessed_data
+# Load the trained LSTM model
+model = load_model('lstm_model.h5')
 
-# Function to make predictions
-def predict_delay(input_data):
-    preprocessed_input = preprocess_input(input_data)
-    prediction = model.predict(preprocessed_input)
-    return prediction
+# Sidebar inputs
+st.sidebar.header("Flight Details")
+flight_number = st.sidebar.text_input("Enter Flight Number")
+origin = st.sidebar.selectbox("Select Origin", df["Origin"].unique())
+destination = st.sidebar.selectbox("Select Destination", df["Dest"].unique())
 
-# Streamlit app
-def main():
-    st.title('Flight Delay Predictor')
+# Filter data based on user inputs
+filtered_df = df[(df["FlightNum"] == flight_number) & (df["Origin"] == origin) & (df["Dest"] == destination)]
 
-    # Input fields
-    departure_time = st.slider('Departure Time', 0, 23, 12)
-    airline = st.selectbox('Airline', ['Airline 1', 'Airline 2', 'Airline 3'])
-    origin = st.text_input('Origin Airport', 'JFK')
-    destination = st.text_input('Destination Airport', 'LAX')
-    flight_number = st.text_input('Flight Number', 'AA123')
+if filtered_df.empty:
+    st.warning("No matching flights found.")
+else:
+    # Prepare input features for prediction
+    # (you'll need to adapt this part based on your preprocessing steps)
+    input_features = np.array(filtered_df.drop(columns=["Delay"]).iloc[0]).reshape(1, 1, -1)
 
-    # Button to make prediction
-    if st.button('Predict'):
-        input_data = np.array([[departure_time, airline, origin, destination, flight_number]])
-        prediction = predict_delay(input_data)
-        if prediction == 1:
-            st.write('There is a delay.')
-        else:
-            st.write('There is no delay.')
+    # Make predictions
+    predicted_delay_probability = model.predict(input_features)[0][0]
 
-if __name__ == '__main__':
-    main()
+    # Determine delay status
+    if predicted_delay_probability >= 0.5:
+        st.write("Flight is likely to be delayed.")
+    else:
+        st.write("Flight is likely to be on time.")
+
+# Run the app
+if __name__ == "__main__":
+    st.title("Flight Delay Prediction App")
+    st.write("Enter flight details in the sidebar.")
