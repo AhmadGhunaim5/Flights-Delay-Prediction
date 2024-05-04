@@ -70,9 +70,6 @@ def load_and_predict():
     predictions = loaded_model.predict(X_test)
     return predictions
 
-# Load data
-df1 = pd.read_csv('flights.csv')
-
 # Streamlit app title and description
 st.title('The US Flight Delays Predictor App')
 st.markdown('Enter flight details to predict delay.')
