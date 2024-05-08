@@ -1,4 +1,4 @@
-!pip install tensorflow
+pip install tensorflow
 from tensorflow.keras.models import load_model
 import os
 import streamlit as st
