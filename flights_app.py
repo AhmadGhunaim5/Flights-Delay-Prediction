@@ -1,6 +1,8 @@
 import os
 import streamlit as st
 import pandas as pd
+from keras.models import load_model
+
 
 def main():
     # Set the path to your desktop and the archive folder
