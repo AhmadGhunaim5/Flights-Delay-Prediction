@@ -1,12 +1,24 @@
+import os
+import streamlit as st
+import pandas as pd
+from keras.models import load_model
+
 def main():
+    # Set the path to your desktop and the archive folder
+    desktop_path = os.path.join(os.path.expanduser("~"), "Desktop")
+    archive_folder_path = os.path.join(desktop_path, "archive")
+    
+    # Set the path to the background image
+    background_image_path = os.path.join(archive_folder_path, "flight.jpg")
+
     # Set the background image using CSS
     st.markdown(
-        """
+        f"""
         <style>
-        .reportview-container {
-            background: url("flight.jpg") no-repeat center center fixed;
+        .reportview-container {{
+            background: url("{background_image_path}") no-repeat center center fixed;
             background-size: cover;
-        }
+        }}
         </style>
         """,
         unsafe_allow_html=True
