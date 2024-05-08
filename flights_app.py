@@ -1,4 +1,4 @@
-! pip install keras
+pip install keras
 
 import os
 import streamlit as st
