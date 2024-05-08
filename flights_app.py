@@ -1,8 +1,8 @@
 import keras
+from tensorflow.keras.models import load_model
 import os
 import streamlit as st
 import pandas as pd
-from keras.models import load_model
 
 
 def main():
