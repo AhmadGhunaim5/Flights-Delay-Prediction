@@ -1,12 +1,15 @@
-import streamlit as st
-import pandas as pd
+import os
+import cv2
+import pickle
+import pyttsx3 
 import numpy as np
+import mediapipe as mp
+from matplotlib import pyplot as plt
+t2s = pyttsx3.init()
+
 import streamlit as st
-import pickle 
-from keras.models import load_model
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
-from sklearn.model_selection import train_test_split
-import datetime
+from streamlit_webrtc import webrtc_streamer
+import av
 
 
 @st.cache(suppress_st_warning=True)
