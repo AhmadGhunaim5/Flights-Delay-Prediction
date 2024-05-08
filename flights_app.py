@@ -1,29 +1,35 @@
-@st.cache(suppress_st_warning=True)
-def get_fvalue(val):
-    feature_dict = {"No": 1, "Yes": 2}
-    for key, value in feature_dict.items():
-        if val == key:
-            return value
+def main():
+    # Set the background image using CSS
+    st.markdown(
+        """
+        <style>
+        .reportview-container {
+            background: url("flight.jpg") no-repeat center center fixed;
+            background-size: cover;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
-def get_value(val, my_dict):
-    for key, value in my_dict.items():
-        if val == key:
-            return value
+    st.title("Flight Delay Prediction")
 
-app_mode = st.sidebar.selectbox('Select Page', ['Home', 'Prediction']) 
+    # Load the LSTM model
+    lstm_model = load_model('lstm_model.h5')
 
-if app_mode=='Home':    
-    st.title('Flight Prediction ')    
-    st.write('App realised by : Jana , Jouna and Ahmad')  
-    st.image('flights.jpg')
-    st.markdown('Dataset')    
-    data=pd.read_csv('flights.csv')    
-    st.write(data.head())   
+    # Sidebar for user input
+    st.sidebar.title("User Input")
+    flight_number = st.sidebar.number_input("Enter Flight Number", min_value=1)
+    if st.sidebar.button("Predict"):
+        prediction = load_and_predict(flight_number)
+        st.write(f"Predicted status of Flight {flight_number}: {prediction}")
 
-elif app_mode == 'Prediction':    
-    st.title ("Flight Delay Prediction")
-    user_input = st.text_input('Please enter your flight ID number')
-    st.button('Click me!')
-    df = pd.DataFrame(np.random.randn(500, 2) / [50, 50] + [37.76, -122.4],
-    columns=['lat', 'lon'])
-    st.map(df)
+    # Display some insights and analysis
+    st.subheader("Data Overview")
+    analysis_checkbox = st.checkbox("Perform Data Analysis")
+    if analysis_checkbox:
+        preprocess(analysis=True)
+
+# Run the app
+if __name__ == "__main__":
+    main()
