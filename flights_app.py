@@ -1,156 +1,170 @@
-import os
-import cv2
-import pickle
-import pyttsx3 
-import numpy as np
-import mediapipe as mp
-from matplotlib import pyplot as plt
-t2s = pyttsx3.init()
-
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer
-import av
+import pandas as pd
+import numpy as np
+import datetime
+import os
 
+# Load the dataset
+data = pd.read_csv('trialF.csv')
 
-@st.cache(suppress_st_warning=True)
+# Check if 'Date' column exists, otherwise handle appropriately
+if 'Date' in data.columns:
+    data['Date'] = pd.to_datetime(data['Date'])
+else:
+    st.error("The column 'Date' does not exist in the dataset. Please check the dataset.")
 
-def get_fvalue(val):
-    feature_dict = {"No": 1, "Yes": 2}
-    for key, value in feature_dict.items():
-        if val == key:
-            return value
+# Add the background image from URL
+def add_bg_from_url():
+    st.markdown(
+        f"""
+        <style>
+        .stApp {{
+            background-image: url("https://media.istockphoto.com/id/1129440561/photo/aerial-view-of-clouds-seen-from-the-plane.jpg?s=612x612&w=0&k=20&c=nLa64DA0Ej24zRAivR6cLO_9umk5c9SpVpJBDWyW6NE=");
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
-def get_value(val, my_dict):
-    for key, value in my_dict.items():
-        if val == key:
-            return value
+add_bg_from_url()
 
-def Time_Formatx(x):
-  # Formatting Time
-    if pd.isna(x):
-        return None
-    if x == 2400:
-        x = 0
-    x = "{0:04d}".format(int(x))
-    return datetime.time(int(x[0:2]), int(x[2:4]))
-def preprocess():
-    # Load data
-    Airlines = pd.read_csv('airlines.csv')
-    Airports = pd.read_csv('airports.csv')
-    Flights = pd.read_csv('flights.csv')
+# Initialize user database in session state if not already present
+if 'user_db' not in st.session_state:
+    st.session_state.user_db = {
+        "AhmadGh": {"password": "12345", "full_name": "Ahmad Gh", "email": "ahmad@gmail.com", "reserved_flights": ["2204"]}
+    }
 
- # Assuming dataOverview is a function defined elsewhere
+# Function for checking login credentials
+def check_login(username, password):
+    user_db = st.session_state.user_db
+    if username in user_db:
+        if user_db[username]["password"] == password:
+            return True
+    return False
 
-    # Dropping rows with NaN values and selecting data for January
-    Flights = Flights.iloc[:,:23]
-    Flights.dropna(inplace=True)
-    Flights = Flights[Flights["MONTH"] == 1]
-    Flights.reset_index(drop=True, inplace=True)
+# Function for registering a new user
+def register_user(username, password, full_name, email, reserved_flights):
+    user_db = st.session_state.user_db
+    st.session_state.user_db[username] = {"password": password, "full_name": full_name, "email": email, "reserved_flights": reserved_flights}
+    return True
 
-    # Collecting Names of Airlines and Airports
-    Airline_Names = {Airlines["IATA_CODE"][i]: Airlines["AIRLINE"][i] for i in range(len(Airlines))}
-    Airport_Names = {Airports["IATA_CODE"][i]: Airports["AIRPORT"][i] for i in range(len(Airports))}
-    City_Names = {Airports["IATA_CODE"][i]: Airports["CITY"][i] for i in range(len(Airports))}
-
-    # Merging Datasets & Selecting relevant columns
-    df = pd.DataFrame()
-    df['DATE'] = pd.to_datetime(Flights[['YEAR', 'MONTH', 'DAY']])
-    df['DAY'] = Flights["DAY_OF_WEEK"]
-    df['AIRLINE'] = Flights["AIRLINE"]
-    df['FLIGHT_NUMBER'] = Flights['FLIGHT_NUMBER']
-    df['TAIL_NUMBER'] = Flights['TAIL_NUMBER']
-    df['ORIGIN'] = Flights['ORIGIN_AIRPORT']
-    df['DESTINATION'] = Flights['DESTINATION_AIRPORT']
-    df['DISTANCE'] = Flights['DISTANCE']
-    df['SCHEDULED_DEPARTURE'] = Flights['SCHEDULED_DEPARTURE'].apply(Time_Formatx)
-    df['SCHEDULED_ARRIVAL'] = Flights['SCHEDULED_ARRIVAL'].apply(Time_Formatx)
-    df['TAXI_OUT'] = Flights['TAXI_OUT']
-    df['DEPARTURE_DELAY'] = Flights['DEPARTURE_DELAY']
-    df['ARRIVAL_DELAY'] = Flights['ARRIVAL_DELAY']
-    df = df[df.ARRIVAL_DELAY < 500]  # Filter to manage extreme values
-
-    # Handling Categorical Variables with Label Encoding
-    le = LabelEncoder()
-    df['AIRLINE'] = le.fit_transform(df['AIRLINE'])
-    df['ORIGIN'] = le.fit_transform(df['ORIGIN'])
-    df['DESTINATION'] = le.fit_transform(df['DESTINATION'])
-    df['TAIL_NUMBER_ENCODED'] = le.fit_transform(df['TAIL_NUMBER'])
-
-    # Selecting Features for Model
-    X = df[['AIRLINE', 'FLIGHT_NUMBER', 'TAIL_NUMBER_ENCODED', 'ORIGIN', 'DESTINATION', 'DISTANCE', 'TAXI_OUT', 'DEPARTURE_DELAY']]
-    Y = (df['ARRIVAL_DELAY'] > 15).astype(int)  # Binary classification, delay > 15 min
-
-    # Splitting into Train, Validation, and Test sets
-    X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.3, random_state=42, stratify=Y)
-    X_val, X_test, y_val, y_test = train_test_split(X_test, y_test, test_size=0.5, random_state=42, stratify=y_test)
-
-    # Standard Scaling
-    scaler = StandardScaler()
-    X_train = scaler.fit_transform(X_train)
-    X_val = scaler.transform(X_val)
-    X_test = scaler.transform(X_test)
-
-
-
-    return X_train, y_train, X_val, y_val, X_test, y_test
-
-def load_and_ppredict(flight_number):
-    # Load the model
-    loaded_model = load_model('lstm_model.h5')
+# Main app logic
+def main():
+    st.title("Your Flight Predictor")
+    st.sidebar.title("Navigation")
+    if 'logged_in' not in st.session_state:
+        st.session_state['logged_in'] = False
+        st.session_state['username'] = ""
     
-    X_train, y_train, X_val, y_val, X_test, y_test = preprocess()
-    X_test = X_test.reshape(X_test.shape[0], 1, X_test.shape[1])
-    # Make predictions
-    predictions = loaded_model.predict(X_test)
-    
-    # Define a threshold
-    threshold = 0.5 
+    if 'app_mode' not in st.session_state:
+        st.session_state['app_mode'] = 'Login'
+        st.session_state['reserved_flights_for_prediction'] = []
 
-    # Classify flights based on the threshold
-    predictions_binary = ['delayed' if prob >= threshold else 'not delayed' for prob in predictions]
+    app_mode = st.sidebar.selectbox('Select Page', ['Login', 'Register', 'Profile', 'My Flights', 'Prediction'], index=['Login', 'Register', 'Profile', 'My Flights', 'Prediction'].index(st.session_state['app_mode']))
 
-    # Load your dataset into a pandas DataFrame
-    df = pd.read_csv("sampled_flights.csv")  
-    
-    # Check if the flight number exists in the DataFrame
-    if flight_number in df['FLIGHT_NUMBER'].values:
-        # Retrieve the corresponding flight status
-        flight_status = df.loc[df['FLIGHT_NUMBER'] == flight_number, 'DELAYED'].iloc[0]
+    if app_mode == 'Login':
+        st.title("Login Page")
         
-        # Convert flight status to readable format
-        if flight_status == 0:
-            actual_status = 'not delayed'
-        else :
-            actual_status = 'delayed'
+        # Login form
+        username = st.text_input("Username", key="login_username")
+        password = st.text_input("Password", type='password', key="login_password")
+
+        if st.button("Login"):
+            if check_login(username, password):
+                st.session_state['logged_in'] = True
+                st.session_state['username'] = username
+                st.session_state['app_mode'] = 'Profile'
+                st.success("Login successful")
+                st.experimental_rerun()  # Rerun the script to load the selected page
+            else:
+                st.error("Invalid username or password")
+
+    elif app_mode == 'Register':
+        st.title("Register Page")
         
-        # Return the actual and predicted flight status
-        predicted_status = predictions_binary[flight_number - 1]
-        return f"Predicted status of Flight {flight_number}: {predicted_status}"
-    else:
-        return "Flight number not found.", ""
+        # Registration form
+        new_username = st.text_input("New Username", key="register_username")
+        new_password = st.text_input("New Password", type='password', key="register_password")
+        full_name = st.text_input("Full Name", key="register_full_name")
+        email = st.text_input("Email", key="register_email")
+        flights = st.text_area("Reserved Flight Numbers (comma-separated)", key="register_flights")
 
+        if st.button("Register"):
+            reserved_flights = [flight.strip() for flight in flights.split(",")] if flights else []
+            register_user(new_username, new_password, full_name, email, reserved_flights)
+            st.success("Registration successful. Please log in.")
+            st.session_state['app_mode'] = 'Prediction'
+            st.session_state['reserved_flights_for_prediction'] = reserved_flights
+            st.experimental_rerun()  # Rerun the script to load the prediction page
 
-app_mode = st.sidebar.selectbox('Select Page', ['Home', 'Prediction']) 
+    elif app_mode == 'Profile':
+        if st.session_state['logged_in']:
+            st.title("User Profile")
+            username = st.session_state['username']
+            user_profile = st.session_state.user_db[username]
+            st.write(f"**Full Name:** {user_profile['full_name']}")
+            st.write(f"**Username:** {username}")
+            st.write(f"**Email:** {user_profile['email']}")
+            
+            if user_profile['reserved_flights']:
+                st.write("You have reserved flights:")
+                for flight in user_profile['reserved_flights']:
+                    st.write(f"Flight Number: {flight}")
+                if st.button('Go to Prediction'):
+                    st.session_state['app_mode'] = 'Prediction'
+                    st.session_state['reserved_flights_for_prediction'] = user_profile['reserved_flights']
+                    st.experimental_rerun()  # Rerun the script to load the prediction page
+        else:
+            st.error("Please log in to access this page")
 
-if app_mode=='Home':    
-    st.title('Flight Prediction ')    
-    #st.write('App realised by : Jana , Jouna and Ahmad')  
-    st.image('flight.jpeg')
-    #st.markdown('Dataset')    
-    #data=pd.read_csv('flights.csv')    
-    #st.write(data.head())   
+    elif app_mode == 'My Flights':
+        if st.session_state['logged_in']:
+            st.title("My Flights")
+            username = st.session_state['username']
+            user_profile = st.session_state.user_db[username]
+            st.write("Here are your reserved flights:")
+            for flight in user_profile['reserved_flights']:
+                st.write(f"Flight Number: {flight}")
+        else:
+            st.error("Please log in to access this page")
 
-elif app_mode == 'Prediction':    
-    st.title("Flight Delay Prediction")
-    user_input = st.text_input('Please enter your flight ID number')
+    elif app_mode == 'Prediction':
+        if st.session_state['logged_in']:
+            st.title("Flight Delay Prediction")
+            reserved_flights = st.session_state.get('reserved_flights_for_prediction', [])
+            
+            if reserved_flights:
+                st.write("Predicting delays for your reserved flights:")
+                for flight_number in reserved_flights:
+                    flight_data = data[data['Flight Number'].astype(str) == str(flight_number)]
+                    if len(flight_data) == 0:
+                        st.error(f"No record found for Flight Number {flight_number}")
+                    else:
+                        actual_status = flight_data['Prediction'].values[0]
+                        delay_percentage = flight_data['Prediction Percentage'].values[0]
+                        st.success(f"Flight Number {flight_number} is {actual_status} with a Delay percentage of {round(delay_percentage * 100, 2)}%")
+            else:
+                user_input = st.text_input('Please enter your Flight Number')
 
-    if st.button('Predict Delay'):
-        try:
-            flight_id = int(user_input)  # Convert user input to integer
-            predicted_status = load_and_ppredict(flight_id)  # Get prediction result
-            #st.success(actual_status)  # Display the actual status
-            st.success(predicted_status)  # Display the predicted status
-        except ValueError:
-            st.error("Please enter a valid numeric flight ID")
-        except Exception as e:
-            st.error(f"Error: {str(e)}")
+                # Print the unique flight numbers for debugging
+                #st.write("Available Flight Numbers:", data['Flight Number'].unique())
+
+                if st.button('Predict Delay'):
+                    try:
+                        flight_data = data[data['Flight Number'].astype(str) == str(user_input)]
+                        if len(flight_data) == 0:
+                            st.error("No record found for the given Flight Number")
+                        else:
+                            actual_status = flight_data['Prediction'].values[0]
+                            delay_percentage = flight_data['Prediction Percentage'].values[0]
+                            st.success(f"The Flight is {actual_status} with a Delay percentage of {round(delay_percentage * 100, 2)}%")
+                    except Exception as e:
+                        st.error(f"Error: {str(e)}")
+        else:
+            st.error("Please log in to access this page")
+
+if __name__ == '__main__':
+    main()
