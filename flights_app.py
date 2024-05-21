@@ -105,9 +105,9 @@ def main():
             st.title("User Profile")
             username = st.session_state['username']
             user_profile = st.session_state.user_db[username]
-            st.write(f"**Full Name:** {user_profile['full_name']}")
-            st.write(f"**Username:** {username}")
-            st.write(f"**Email:** {user_profile['email']}")
+            st.write(f"*Full Name:* {user_profile['full_name']}")
+            st.write(f"*Username:* {username}")
+            st.write(f"*Email:* {user_profile['email']}")
             
             if user_profile['reserved_flights']:
                 st.write("You have reserved flights:")
@@ -132,7 +132,6 @@ def main():
             st.error("Please log in to access this page")
 
     elif app_mode == 'Prediction':
-        if st.session_state['logged_in']:
             st.title("Flight Delay Prediction")
             reserved_flights = st.session_state.get('reserved_flights_for_prediction', [])
             
@@ -142,7 +141,7 @@ def main():
                     flight_data = data[data['Flight Number'].astype(str) == str(flight_number)]
                     if len(flight_data) == 0:
                         st.error(f"No record found for Flight Number {flight_number}")
-                    else:
+                    
                         actual_status = flight_data['Prediction'].values[0]
                         delay_percentage = flight_data['Prediction Percentage'].values[0]
                         st.success(f"Flight Number {flight_number} is {actual_status} with a Delay percentage of {round(delay_percentage * 100, 2)}%")
@@ -163,7 +162,7 @@ def main():
                             st.success(f"The Flight is {actual_status} with a Delay percentage of {round(delay_percentage * 100, 2)}%")
                     except Exception as e:
                         st.error(f"Error: {str(e)}")
-        else:
+    else:
             st.error("Please log in to access this page")
 
 if __name__ == '__main__':
