@@ -1,9 +1,12 @@
-Our graduation project subject by flight delays prediction
+Flight Delays Prediction Project
 
-Names and signatures of team members:
-Ahmad Ghunaim 20190294
-Jouna AbuQwaider 20190463
-Jana Almasri 20200357
+Names of team members:
+Ahmad Ghunaim 
+Jouna AbuQwaider 
+Jana Almasri 
+
+The dataset link:
+https://www.kaggle.com/datasets/usdot/flight-delays?select=flights.csv
 
 Insructions to run the StreamLit application:
 - Download the flights_app.py and the trialF.csv file, and ensure that they are at the same directory.
